@@ -9,29 +9,55 @@ export function getInnerDimensions(element) {
     };
 }
 
-export function drawLine(svg, data, x, y, color) {
+// ... (other utility functions)
+
+export const drawLine = (chartGroup, data, xScale, yScale, color) => {
     const line = d3.line()
-        .x((d, i) => x(i))
-        .y(d => y(d.ethAmount));
+      .x((d, i) => xScale(i))
+      .y(d => yScale(d.ethAmount));
+  
+    chartGroup.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", color)
+      .attr("stroke-width", 1)
+      .attr("d", line);
+  
+    // Add dots
+    chartGroup.selectAll("circle")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("cx", (d, i) => xScale(i))
+      .attr("cy", d => yScale(d.ethAmount))
+      .attr("r", 5)
+      .attr("fill", d => d.isBuy ? "green" : "red");
+  };
+  
 
-    svg.append("path")
-        .datum(data)
-        .attr("fill", "none")
-        .attr("stroke", color)
-        .attr("stroke-width", 1.5)
-        .attr("d", line);
-}
-
-export function drawXAxis(svg, xScale, height) {
-    svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(xScale));
-}
-
-export function drawYAxis(svg, yScale) {
-    svg.append("g")
-        .call(d3.axisLeft(yScale));
-}
+  export const drawXAxis = (chartGroup, xScale, height, tickLabels = null) => {
+    const xAxis = d3.axisBottom(xScale);
+    if (tickLabels) {
+      xAxis.tickFormat((d, i) => tickLabels[i] || '');
+    }
+    chartGroup.append("g")
+      .attr("class", "axis")
+      .attr("transform", `translate(0,${height})`)
+      .call(xAxis);
+  };
+  
+  export const drawYAxis = (chartGroup, yScale, tickCount = null) => {
+    const yAxis = d3.axisLeft(yScale);
+    if (tickCount) {
+      yAxis.ticks(tickCount);
+    }
+    chartGroup.append("g")
+      .attr("class", "axis")
+      .call(yAxis);
+  };
+  
+  // ... (other helper functions)
+  
 
 export function addTitle(svg, title, width) {
     svg.append("text")
@@ -61,3 +87,23 @@ export function addYAxisLabel(svg, label, height) {
         .style("font-size", "14px")
         .text(label);
 }
+
+export const addTooltip = (line, twitterName) => {
+    const tooltip = d3.select("body").append("div")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+  
+    line.on("mouseover", function(event, d) {
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", .9);
+      tooltip.html(`Twitter: ${twitterName}<br/>ETH Amount: ${d.ethAmount}`)
+        .style("left", (event.pageX) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function(d) {
+      tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+    });
+  };
